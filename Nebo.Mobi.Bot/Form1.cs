@@ -15,6 +15,24 @@ namespace Nebo.Mobi.Bot
 		{
 			InitializeComponent();
 			_manager = new Manager(_botTimer);
+			FormInitialization();
+
+			tbPass.UseSystemPasswordChar = true;
+
+			_botTimer = new System.Windows.Forms.Timer();
+			_botTimer.Tick += bot_timer_Tick;
+
+			ref_timer.Interval = 1000;
+			_botTimer.Enabled = false;
+			ref_timer.Enabled = false;
+
+		}
+
+		/// <summary>
+		/// установка значений ширины\высоты для формы
+		/// </summary>
+		private void FormInitialization()
+		{
 			Size = new Size((int) (0.5*Screen.PrimaryScreen.Bounds.Width), (int) (0.5*Screen.PrimaryScreen.Bounds.Height));
 
 			lUserInfo.Location = new Point((int) (0.02*Size.Width), (int) (0.02*Size.Height));
@@ -54,21 +72,14 @@ namespace Nebo.Mobi.Bot
 
 			lCopyright.Text = @"Exclusive by Mr.President  ©  2014." + @"  ver. 1.4";
 			lCopyright.Location = new Point(lLOG.Location.X + LOGBox.Size.Width - lCopyright.Size.Width, (int) (Size.Height*0.88));
-
-			tbPass.UseSystemPasswordChar = true;
-
-			_botTimer = new System.Windows.Forms.Timer();
-			_botTimer.Tick += bot_timer_Tick;
-
-			ref_timer.Interval = 1000;
-			_botTimer.Enabled = false;
-			ref_timer.Enabled = false;
-
-			_manager.CommutationStr = "";
 		}
 
 
-		//обновление содержания формы
+		public static string Name = "Небоскребы. Бот"; //имя окна
+
+		/// <summary>
+		/// обновление содержания формы
+		/// </summary>
 		private void UpdForm()
 		{
 			if (!_bot.IsAlive)
@@ -76,7 +87,7 @@ namespace Nebo.Mobi.Bot
 				bStart.Enabled = true;
 				bStop.Enabled = false;
 			}
-			Text = Manager.Name + _manager.ConnectStatus + _manager.ActionStatus;
+			Text = Name + _manager.ConnectStatus + _manager.ActionStatus;
 			if (_manager.CommutationStr != "")
 			{
 				LOGBox.Text += _manager.CommutationStr;
@@ -99,12 +110,17 @@ namespace Nebo.Mobi.Bot
 		}
 
 
-		//обработчик кнопки Старт
+		/// <summary>
+		/// обработчик кнопки Старт
+		/// </summary>
 		private void bStart_Click(object sender, EventArgs e)
 		{
 			StartBot();
 		}
 
+		/// <summary>
+		/// Стартует бота
+		/// </summary>
 		private void StartBot()
 		{
 			bStart.Enabled = false;
@@ -119,7 +135,9 @@ namespace Nebo.Mobi.Bot
 		}
 
 
-		//остановка бота и очистка синхрострок
+		/// <summary>
+		/// остановка бота и очистка синхрострок
+		/// </summary>
 		private void bStop_Click(object sender, EventArgs e)
 		{
 			_bot.Abort();
@@ -154,7 +172,6 @@ namespace Nebo.Mobi.Bot
 			}
 			catch (Exception)
 			{
-				LOGBox.Text += @"Что-то не так";
 			}
 		}
 	}

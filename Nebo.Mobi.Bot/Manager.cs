@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -8,10 +7,32 @@ using Timer = System.Windows.Forms.Timer;
 
 namespace Nebo.Mobi.Bot
 {
+	public class ManagerData
+	{
+		/// <summary>
+		/// счетчик купленных товаров
+		/// </summary>
+		public int BuyCount { get; set; }
+
+		/// <summary>
+		/// счетчик собранных выручек (точнее этажей)
+		/// </summary>
+		public int CoinsCount { get; set; }
+
+		/// <summary>
+		/// счетчик перевезенных в лифте
+		/// </summary>
+		public int LiftCount { get; set; }
+
+		/// <summary>
+		/// счетчик выложенных товаров (точнее этажей)
+		/// </summary>
+		public int MerchCount { get; set; }
+	}
+
 	public class Manager
 	{
-		private const string Server = "http://nebo.mobi/"; //адрес сервера
-		public static string Name = "Небоскребы. Бот"; //имя окна
+
 		private readonly Timer _botTimer;
 		public string ActionStatus = ""; //теекущее действие
 		public string CommutationStr; //строка для логов
@@ -19,27 +40,21 @@ namespace Nebo.Mobi.Bot
 		private string _homeLink; //ссылка на домашнюю страницу
 		private string _html; //html-код текущей страницы
 		private string _link; //переменная для обмена ссылками
-		private int _buyCount; //счетчик купленных товаров
-		private int _coinsCount; //счетчик собранных выручек (точнее этажей)
-		private int _liftCount; //счетчик перевезенных в лифте
 		private string _login;
-		private int _merchCount; //счетчик выложенных товаров (точнее этажей)
 		private string _password;
 		private readonly Random _rnd;
-		private StreamReader _sr;
-		private Stream _stream;
 		public int Timeleft; //секунд до начала нового прохода
 
+		public ManagerData ManagerData { get; private set; }
 
 		private readonly WebClient _webClient;
-		private WebRequest _webReq;
-		private WebResponse _webResp;
 
 		public Manager(Timer botTimer)
 		{
 			_botTimer = botTimer;
 			_webClient = new WebClient();
 			_rnd = new Random();
+			ManagerData = new ManagerData();
 		}
 
 		public bool DoNotPut { get; set; }
@@ -52,10 +67,10 @@ namespace Nebo.Mobi.Bot
 			string ab = "";
 			foreach (string a in str)
 			{
-				if (a.Contains("http://static.nebo.mobi/images/icons/tb_lift2.png")) //если пусто
+				if (a.Contains(Constants.LiftEmpty)) //если пусто
 					break;
-				if (a.Contains("http://static.nebo.mobi/images/icons/tb_lift.png") ||
-				    a.Contains("http://static.nebo.mobi/images/icons/tb_lift_vip.png")) //если есть народ или ВИПы
+				if (a.Contains(Constants.LiftFull) ||
+						a.Contains(Constants.LiftVip)) //если есть народ или ВИПы
 				{
 					ab = a.Substring(21, 48);
 					break;
@@ -71,7 +86,7 @@ namespace Nebo.Mobi.Bot
 			//проверяем, надо ли гнать лифт
 			string ab = TryLift();
 
-			_liftCount = 0;
+			ManagerData.LiftCount = 0;
 			if (ab != "")
 			{
 				ActionStatus = "   -   Катаю лифт";
@@ -82,7 +97,7 @@ namespace Nebo.Mobi.Bot
 					Thread.Sleep(_rnd.Next(351, 1500));
 				}
 				ActionStatus = "";
-				CommutationStr = string.Format("{0}  -  Доставлено пассажиров: {1}.\n", GetTime(), _liftCount);
+				CommutationStr = string.Format("{0}  -  Доставлено пассажиров: {1}.\n", GetTime(), ManagerData.LiftCount);
 			}
 			Thread.Sleep(_rnd.Next(30, 100));
 		}
@@ -116,7 +131,7 @@ namespace Nebo.Mobi.Bot
 			{
 				ab = ab.Substring(114);
 				ab = ab.Remove(ab.IndexOf('\"'));
-				_coinsCount++;
+				ManagerData.CoinsCount++;
 			}
 			return ab;
 		}
@@ -126,11 +141,11 @@ namespace Nebo.Mobi.Bot
 		{
 			//ищем ссылку сбора выручки
 			string ab = TryMoney();
-			_coinsCount = 0;
+			ManagerData.CoinsCount = 0;
 			if (ab != "")
 			{
 				ActionStatus = "   -   Собираю выручку";
-				_coinsCount = 1;
+				ManagerData.CoinsCount = 1;
 				while (ab != "")
 				{
 					ab = GetMoneyLink(ab);
@@ -138,7 +153,7 @@ namespace Nebo.Mobi.Bot
 				}
 
 				ActionStatus = "";
-				CommutationStr = string.Format("{0}  -  Этажей, с которых собрана выручка: {1}.\n", GetTime(), _coinsCount);
+				CommutationStr = string.Format("{0}  -  Этажей, с которых собрана выручка: {1}.\n", GetTime(), ManagerData.CoinsCount);
 			}
 			Thread.Sleep(_rnd.Next(30, 100));
 		}
@@ -172,7 +187,7 @@ namespace Nebo.Mobi.Bot
 			{
 				ab = ab.Substring(117);
 				ab = ab.Remove(ab.IndexOf('\"'));
-				_merchCount++;
+				ManagerData.MerchCount++;
 			}
 			return ab;
 		}
@@ -182,11 +197,11 @@ namespace Nebo.Mobi.Bot
 		{
 			//ищем ссылку сбора выручки
 			string ab = TryPutMerch();
-			_merchCount = 0;
+			ManagerData.MerchCount = 0;
 			if (ab != "")
 			{
 				ActionStatus = "   -   Выкладываю товар";
-				_merchCount = 1;
+				ManagerData.MerchCount = 1;
 				while (ab != "")
 				{
 					ab = GetMerchLink(ab);
@@ -194,7 +209,7 @@ namespace Nebo.Mobi.Bot
 				}
 
 				ActionStatus = "";
-				CommutationStr = string.Format("{0}  -  Этажей, на которых выложен товар: {1}.\n", GetTime(), _merchCount);
+				CommutationStr = string.Format("{0}  -  Этажей, на которых выложен товар: {1}.\n", GetTime(), ManagerData.MerchCount);
 			}
 			Thread.Sleep(_rnd.Next(30, 100));
 		}
@@ -335,11 +350,11 @@ namespace Nebo.Mobi.Bot
 
 			//получаем рандомное время ожидания
 			_botTimer.Interval = _rnd.Next(mintime, maxtime);
-			_botTimer.Interval = (int) (_botTimer.Interval*0.001)*1000;
+			_botTimer.Interval = (int)(_botTimer.Interval * 0.001) * 1000;
 			ConnectStatus = "   -   Стоп";
-			Timeleft = (int) (_botTimer.Interval*0.001);
+			Timeleft = (int)(_botTimer.Interval * 0.001);
 			CommutationStr = string.Format("Жду   {0}",
-				string.Format("{0}мин : {1:d2}сек\n\n", Timeleft/60, Timeleft - (Timeleft/60*60)));
+				string.Format("{0}мин : {1:d2}сек\n\n", Timeleft / 60, Timeleft - (Timeleft / 60 * 60)));
 		}
 
 
@@ -394,19 +409,19 @@ namespace Nebo.Mobi.Bot
 		{
 			//ищем ссылку сбора выручки
 			string ab = TryBuy();
-			_buyCount = 0;
+			ManagerData.BuyCount = 0;
 			if (ab != "")
 			{
 				ActionStatus = "   -   Закупаю товар";
 				while (ab != "")
 				{
 					ab = GetBuyLink(ab);
-					_buyCount++;
+					ManagerData.BuyCount++;
 					Thread.Sleep(_rnd.Next(351, 1500));
 				}
 
 				ActionStatus = "";
-				CommutationStr = string.Format("{0}  -  Этажей, на которых закуплен товар: {1}.\n", GetTime(), _buyCount);
+				CommutationStr = string.Format("{0}  -  Этажей, на которых закуплен товар: {1}.\n", GetTime(), ManagerData.BuyCount);
 			}
 			Thread.Sleep(_rnd.Next(30, 100));
 		}
@@ -437,12 +452,12 @@ namespace Nebo.Mobi.Bot
 				{
 					ab = ab.Substring(27);
 					if (ab.IndexOf('\"') != -1) ab = ab.Remove(ab.IndexOf('\"'));
-					_liftCount++;
+					ManagerData.LiftCount++;
 				}
 			}
 			return ab;
 		}
-		
+
 		//метод сброса потока бота
 		private void ThreadAbort(string reason)
 		{
@@ -482,7 +497,7 @@ namespace Nebo.Mobi.Bot
 			_webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:30.0) Gecko/20100101 Firefox/30.0");
 			_webClient.Headers[HttpRequestHeader.ContentType] = "application/x-www-form-urlencoded";
 			_webClient.Encoding = Encoding.UTF8;
-			_html = _webClient.UploadString(Server + link, param);
+			_html = _webClient.UploadString(Constants.Server + link, param);
 		}
 
 		//подключение к серверу
